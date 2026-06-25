@@ -54,7 +54,7 @@ gtf_path <- file.path(
 
 cd_marker_master_path <- file.path(
   ref_dir,
-  "cd_marker_list_clean_ensembl115_updated.csv"
+  "cd_marker_list.csv"
 )
 
 # ============================================================
