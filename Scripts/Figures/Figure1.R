@@ -151,16 +151,26 @@ exclude_celltypes <- c(
 
 base_size <- 14
 
-axis_text_size    <- 16
-axis_title_size   <- 16
-plot_title_size   <- 16
-subtitle_size     <- 14
-legend_text_size  <- 14
-legend_title_size <- 15
-panel_tag_size    <- 18
+# Main manuscript text size.
+# This is the same size as the Panel B x-axis text.
+axis_text_size <- 16
 
-panelA_bar_label_size <- 5.4
-panelD_number_size    <- 5.4
+# Use the same size for all non-title text.
+axis_title_size   <- axis_text_size
+legend_text_size  <- axis_text_size
+legend_title_size <- axis_text_size
+subtitle_size     <- axis_text_size
+
+# Titles and panel letters.
+plot_title_size <- 16
+panel_tag_size  <- 18
+
+# ggplot2 geom_text() sizes are not in points.
+# Convert 16 pt text to the corresponding geom_text size.
+geom_text_size <- axis_text_size / ggplot2::.pt
+
+panelA_bar_label_size <- geom_text_size
+panelD_number_size    <- geom_text_size
 
 # ============================================================
 # PANEL B SUPPORT THRESHOLDS
