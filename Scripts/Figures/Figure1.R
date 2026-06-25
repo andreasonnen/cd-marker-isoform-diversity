@@ -89,6 +89,13 @@ signal_layer  <- "counts"
 
 celltype_var <- "broad_celltype_final"
 
+# Set this to FALSE if you want no panel titles.
+show_panel_titles <- TRUE
+
+panel_title <- function(x) {
+  if (isTRUE(show_panel_titles)) x else NULL
+}
+
 celltype_map <- c(
   "CD4_T"    = "CD4 T",
   "CD8_T"    = "CD8 T",
@@ -149,24 +156,21 @@ exclude_celltypes <- c(
 # TEXT SIZES
 # ============================================================
 
-base_size <- 14
+base_size <- 18
 
-# Main manuscript text size.
-# This is the same size as the Panel B x-axis text.
-axis_text_size <- 16
+axis_text_size    <- 20
+axis_title_size   <- 20
+legend_text_size  <- 20
+legend_title_size <- 20
+subtitle_size     <- 20
 
-# Use the same size for all non-title text.
-axis_title_size   <- axis_text_size
-legend_text_size  <- axis_text_size
-legend_title_size <- axis_text_size
-subtitle_size     <- axis_text_size
+# Titles are same size but not bold.
+plot_title_size <- 20
 
-# Titles and panel letters.
-plot_title_size <- 16
-panel_tag_size  <- 18
+# Panel letters.
+panel_tag_size <- 22
 
 # ggplot2 geom_text() sizes are not in points.
-# Convert 16 pt text to the corresponding geom_text size.
 geom_text_size <- axis_text_size / ggplot2::.pt
 
 panelA_bar_label_size <- geom_text_size
@@ -178,7 +182,6 @@ panelD_number_size    <- geom_text_size
 
 # A cell is counted as expressing the marker gene if the summed
 # gene-level transcript count is at least 2.
-# This is the version that preserves the 15-gene Panel B result.
 cell_expr_threshold <- 2
 
 # A gene-cell-type combination is supported if:
@@ -213,7 +216,6 @@ col_grey_high <- col_panelA
 
 col_unsupported <- "#BDBDBD"
 
-# Coding-potential gradient
 col_noncoding <- "#E08A66"
 col_mixed     <- "white"
 col_coding    <- "#2D6A4F"
@@ -227,7 +229,11 @@ theme_fig <- ggplot2::theme_classic(base_size = base_size) +
     text = ggplot2::element_text(color = col_text),
     axis.text = ggplot2::element_text(color = col_text, size = axis_text_size),
     axis.title = ggplot2::element_text(color = col_text, size = axis_title_size),
-    plot.title = ggplot2::element_text(face = "bold", size = plot_title_size),
+    plot.title = ggplot2::element_text(
+      face = "plain",
+      size = plot_title_size,
+      color = col_text
+    ),
     plot.subtitle = ggplot2::element_text(size = subtitle_size, color = "grey35"),
     plot.tag = ggplot2::element_text(face = "bold", size = panel_tag_size),
     legend.text = ggplot2::element_text(size = legend_text_size),
@@ -243,7 +249,11 @@ theme_heat <- ggplot2::theme_classic(base_size = base_size) +
     axis.line = ggplot2::element_blank(),
     axis.ticks = ggplot2::element_blank(),
     panel.grid = ggplot2::element_blank(),
-    plot.title = ggplot2::element_text(face = "bold", size = plot_title_size),
+    plot.title = ggplot2::element_text(
+      face = "plain",
+      size = plot_title_size,
+      color = col_text
+    ),
     plot.subtitle = ggplot2::element_text(size = subtitle_size, color = "grey35"),
     plot.caption = ggplot2::element_blank(),
     legend.title = ggplot2::element_text(size = legend_title_size),
@@ -342,7 +352,6 @@ make_marker_labels <- function(label_df) {
 
 pretty_ct <- function(x) {
   out <- gsub("_", " ", x)
-  out <- gsub("B cell", "B cell", out)
   out <- gsub("NK ILC", "NK/ILC", out)
   out
 }
@@ -398,7 +407,8 @@ cd_gene_metadata <- cd_raw %>%
 # PANEL A — TRANSCRIPT COMPLEXITY
 # ============================================================
 
-cap <- 50
+# Collapse all genes with >=40 retained transcripts into one bin.
+cap <- 40
 
 gene_counts <- tx_universe_pbmc %>%
   dplyr::group_by(gene_symbol) %>%
@@ -442,15 +452,21 @@ pA <- ggplot2::ggplot(
   ggplot2::labs(
     x = "PBMC-retained transcripts per gene",
     y = "CD marker genes",
-    title = "Transcript complexity per CD marker gene"
+    title = panel_title("Transcript complexity per CD marker gene")
   ) +
   theme_fig +
   ggplot2::theme(
+    plot.title = ggplot2::element_text(
+      face = "plain",
+      size = plot_title_size,
+      color = col_text,
+      margin = ggplot2::margin(t = -14, b = 8)
+    ),
     axis.text.x = ggplot2::element_text(size = axis_text_size),
     axis.text.y = ggplot2::element_text(size = axis_text_size),
-    axis.title.x = ggplot2::element_text(size = axis_text_size),
-    axis.title.y = ggplot2::element_text(size = axis_text_size),
-    plot.margin = ggplot2::margin(5.5, 2, 5.5, 5.5)
+    axis.title.x = ggplot2::element_text(size = axis_title_size),
+    axis.title.y = ggplot2::element_text(size = axis_title_size),
+    plot.margin = ggplot2::margin(-10, 2, 38, 5.5)
   )
 
 # ============================================================
@@ -633,8 +649,6 @@ readr::write_csv(
   file.path(fig_dir, "Figure1B_coding_potential_support_10pct_cells_count2.csv")
 )
 
-# Gene inclusion for Panel B.
-# This is computed from the full unfiltered table to avoid stale/filtered-state errors.
 gene_keep_tbl_B <- plot_tbl_B_all %>%
   dplyr::group_by(gene_symbol) %>%
   dplyr::summarise(
@@ -663,7 +677,6 @@ readr::write_csv(
   file.path(fig_dir, "Figure1B_kept_genes_METHODS_filter.csv")
 )
 
-# Diagnostic comparison to the older total-signal support rule.
 old_vs_methods_gene_keep <- plot_tbl_B_all %>%
   dplyr::mutate(
     old_min_cells_required = pmax(10L, ceiling(0.02 * n_cells_total)),
@@ -712,7 +725,6 @@ readr::write_csv(
   file.path(fig_dir, "Figure1B_old_total100_vs_methods_support_gene_keep_FULL.csv")
 )
 
-# Filter for plotting only after the full support and diagnostic tables are saved.
 plot_tbl_B <- plot_tbl_B_all %>%
   dplyr::inner_join(
     gene_keep_tbl_B %>%
@@ -782,28 +794,44 @@ pB <- ggplot2::ggplot() +
     oob = scales::squish,
     breaks = c(0, 0.25, 0.5, 0.75, 1),
     labels = c("0\nnon-coding", "0.25", "0.5\nmixed", "0.75", "1\ncoding"),
-    name = "Coding\npotential\n"
+    name = "Coding\npotential\n",
+    guide = ggplot2::guide_colorbar(
+      barheight = grid::unit(62, "mm"),
+      barwidth = grid::unit(8, "mm"),
+      title.position = "top",
+      title.hjust = 0.5,
+      label.position = "right"
+    )
   ) +
   ggplot2::scale_x_discrete(expand = ggplot2::expansion(add = 0)) +
   ggplot2::scale_y_discrete(expand = ggplot2::expansion(add = 0)) +
   ggplot2::labs(
     x = "",
     y = "Cell type",
-    title = "Cell-type-specific coding potential"
+    title = panel_title("Cell-type-specific coding potential")
   ) +
   theme_heat +
   ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 45,
+      angle = 60,
       hjust = 1,
-      vjust = 0.5,
+      vjust = 1,
       size = axis_text_size
     ),
     axis.text.y = ggplot2::element_text(size = axis_text_size),
-    axis.title.y = ggplot2::element_text(size = axis_text_size),
+    axis.title.y = ggplot2::element_text(size = axis_title_size),
+    plot.title = ggplot2::element_text(
+      face = "plain",
+      size = plot_title_size,
+      color = col_text,
+      margin = ggplot2::margin(t = 0, b = 8)
+    ),
     plot.subtitle = ggplot2::element_blank(),
     plot.caption = ggplot2::element_blank(),
-    legend.position = "right"
+    legend.position = "right",
+    legend.title = ggplot2::element_text(size = legend_title_size),
+    legend.text = ggplot2::element_text(size = legend_text_size),
+    plot.margin = ggplot2::margin(6, 8, 36, 5.5)
   )
 
 # ============================================================
@@ -966,23 +994,30 @@ pC <- ggplot2::ggplot(
   ggplot2::labs(
     x = "Cell type",
     y = "Median pairwise JS distance",
-    title = "Within-population coding transcript heterogeneity"
+    title = panel_title("Within-population coding transcript heterogeneity")
   ) +
   theme_fig +
   ggplot2::theme(
     axis.text.x = ggplot2::element_text(
-      angle = 45,
+      angle = 60,
       hjust = 1,
+      vjust = 1,
       size = axis_text_size
     ),
     axis.text.y = ggplot2::element_text(size = axis_text_size),
     axis.title.x = ggplot2::element_text(
-      size = axis_text_size,
-      margin = ggplot2::margin(t = 10)
+      size = axis_title_size,
+      margin = ggplot2::margin(t = 14)
     ),
-    axis.title.y = ggplot2::element_text(size = axis_text_size),
-    plot.caption = ggplot2::element_text(size = 8, color = "grey35", hjust = 0),
-    legend.position = "none"
+    axis.title.y = ggplot2::element_text(size = axis_title_size),
+    plot.title = ggplot2::element_text(
+      face = "plain",
+      size = plot_title_size,
+      color = col_text,
+      margin = ggplot2::margin(t = 0, b = 8)
+    ),
+    legend.position = "none",
+    plot.margin = ggplot2::margin(10, 8, 5.5, 5.5)
   )
 
 # ============================================================
@@ -1033,14 +1068,15 @@ build_switch_triangle <- function(gene_calls, usable_ct, ct_levels) {
     ggplot2::labs(
       x = NULL,
       y = NULL,
-      title = "Isoform switching across populations"
+      title = panel_title("Isoform switching across populations")
     ) +
     ggplot2::theme_minimal(base_size = base_size) +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank(),
       axis.text.x = ggplot2::element_text(
-        angle = 45,
+        angle = 60,
         hjust = 1,
+        vjust = 1,
         color = col_text,
         size = axis_text_size
       ),
@@ -1049,12 +1085,14 @@ build_switch_triangle <- function(gene_calls, usable_ct, ct_levels) {
         size = axis_text_size
       ),
       plot.title = ggplot2::element_text(
-        face = "bold",
+        face = "plain",
         size = plot_title_size,
-        color = col_text
+        color = col_text,
+        margin = ggplot2::margin(t = 0, b = 8)
       ),
       legend.title = ggplot2::element_text(size = legend_title_size),
-      legend.text = ggplot2::element_text(size = legend_text_size)
+      legend.text = ggplot2::element_text(size = legend_text_size),
+      plot.margin = ggplot2::margin(10, 8, 5.5, 5.5)
     ) +
     ggplot2::coord_equal()
 }
@@ -1073,31 +1111,31 @@ save_panel(
   pA,
   "Figure1A_transcript_complexity",
   width = 13.5,
-  height = 3.3,
+  height = 3.8,
   dpi = 600
 )
 
 save_panel(
   pB,
   "Figure1B_coding_potential_heatmap",
-  width = 11.5,
-  height = 4.6,
+  width = 12.3,
+  height = 5.6,
   dpi = 600
 )
 
 save_panel(
   pC,
   "Figure1C_strict_JS_boxplot",
-  width = 6.4,
-  height = 4.6,
+  width = 7.2,
+  height = 5.4,
   dpi = 600
 )
 
 save_panel(
   pD,
   "Figure1D_pairwise_isoform_switching",
-  width = 5.4,
-  height = 5.0,
+  width = 6.4,
+  height = 5.7,
   dpi = 600
 )
 
@@ -1111,7 +1149,7 @@ pA_for_combined <- patchwork::free(pA, side = "r")
 
 fig_all <- pA_for_combined / pB / bottom_row +
   patchwork::plot_layout(
-    heights = c(1.00, 1.35, 1.48),
+    heights = c(1.18, 1.65, 1.82),
     widths = c(1.65, 0.85)
   ) +
   patchwork::plot_annotation(tag_levels = "A") &
@@ -1119,8 +1157,10 @@ fig_all <- pA_for_combined / pB / bottom_row +
     plot.tag = ggplot2::element_text(
       face = "bold",
       size = panel_tag_size,
-      color = col_text
+      color = col_text,
+      vjust = 0.5
     ),
+    plot.tag.position = c(0, 0.96),
     plot.margin = ggplot2::margin(5.5, 7, 5.5, 5.5)
   )
 
@@ -1128,7 +1168,7 @@ ggplot2::ggsave(
   outfile_combined_pdf,
   fig_all,
   width = 18.0,
-  height = 13.4,
+  height = 16.2,
   device = cairo_pdf,
   bg = "white"
 )
@@ -1137,7 +1177,7 @@ ggplot2::ggsave(
   outfile_combined_png,
   fig_all,
   width = 18.0,
-  height = 13.4,
+  height = 16.2,
   dpi = 600,
   bg = "white",
   limitsize = FALSE
