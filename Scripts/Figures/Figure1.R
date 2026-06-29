@@ -1184,5 +1184,4 @@ ggplot2::ggsave(
     limitsize = FALSE
 )
 
-message("Saved combined PDF: ", outfile_combined_pdf)
-message("Saved combined PNG: ", outfile_combined_png)
+
